@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net"
 	"net/url"
 	"os"
 	"os/signal"
@@ -13,7 +14,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var addr = flag.String("addr", "192.168.1.52:2222", "http service address")
+var addr = flag.String("addr", fmt.Sprintf("%s:2222", GetLocalIP()), "http service address")
+
+// GetLocalIP returns the non loopback local IP of the host
+func GetLocalIP() string {
+	conn, err := net.Dial("ip:icmp", "google.com")
+	if err != nil {
+		return ""
+	}
+	var localIp = conn.LocalAddr()
+	// fmt.Println(localIp)
+	return localIp.String()
+}
 
 func DateNow() int64 {
 	now := time.Now()
@@ -21,7 +33,7 @@ func DateNow() int64 {
 	// correct way to convert time to millisecond - with UnixNano()
 	unixNano := now.UnixNano()
 	umillisec := unixNano / 1000000
-	fmt.Println("(correct)Millisecond : ", umillisec)
+	// fmt.Println("(correct)Millisecond : ", umillisec)
 	return umillisec
 }
 
@@ -35,7 +47,7 @@ func RandomString(n int) string {
 	return string(s)
 }
 
-func sendMessage(c *websocket.Conn, stringJSON string) {
+func SendMessage(c *websocket.Conn, stringJSON string) {
 	err := c.WriteMessage(websocket.TextMessage, []byte(stringJSON))
 	if err != nil {
 		log.Println("write:", err)
@@ -48,6 +60,8 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 	connected := false
+
+	fmt.Println("Local ip: ", GetLocalIP())
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -64,7 +78,7 @@ func main() {
 	done := make(chan struct{})
 
 	stringJSON := `{"action":"handshake","accountName":"web-kotlas","terminalId":"стресс-тест","type":"FASTFOOD","msgHash":"WddYGbBgAy"}`
-	sendMessage(c, stringJSON)
+	SendMessage(c, stringJSON)
 
 	orderName := 2000
 
@@ -102,7 +116,7 @@ func main() {
 
 				// stringJSON := fmt.Sprintf(`{"id": %d, "hash": "%s", "type": "workshop", "orderName": %d, "action": "send_order", "waiterId": 7, "waiterName": "Виктор", "tableId": "99", "account": "web-kotlas", "terminalId": "web-kotlas1", "comment": "стресс коммент", "orderComment": "", "products": [{"id": 3, "count": 1, "name": "Капучино 250 мл", "cookingTime": 80, "title": "", "titleArray": [], "productId": "%s", "comment": ""}], "msgHash": "%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
 
-				sendMessage(c, stringJSON)
+				SendMessage(c, stringJSON)
 			}
 
 			// {"action":"handshake","accountName":"web-kotlas","terminalId":"web-kotlas1","type":"FASTFOOD","msgHash":"WddYGbBgAy"}
