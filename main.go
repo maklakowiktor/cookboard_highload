@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var addr = flag.String("addr", fmt.Sprintf("%s:2222", GetLocalIP()), "http service address")
+var addr = flag.String("addr", fmt.Sprintf("%s:2222", "192.168.1.100"), "http service address")
 
 // GetLocalIP returns the non loopback local IP of the host
 func GetLocalIP() string {
@@ -100,43 +100,58 @@ func main() {
 		}
 	}()
 
-	ticker := time.NewTicker(time.Second * 3)
-	defer ticker.Stop()
+	var interval int32 = 30
+	// ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	// defer ticker.Stop()
 
 	for {
-		select {
-		case <-done:
-			return
-		case <-ticker.C:
+		if connected {
+			orderName++
 
-			if connected {
-				orderName++
+			stringJSON = fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":[{"id":9,"feedPriority":1,"count":1,"modification":"[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]","name":"Большой Денер (белый соус)","cookingTime":200,"title":"Мясо × 2, Огурцы маринованные","titleArray":["Мясо × 2","Огурцы маринованные"],"productId":"16431463320039[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]1","comment":"KITCHEN Bar"},{"id":5,"feedPriority":2,"count":8,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200352","comment":"KITCHEN Bar"},{"id":5,"feedPriority":3,"count":4,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200353","comment":"KITCHEN Bar"},{"id":5,"feedPriority":1,"count":3,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200351","comment":"KITCHEN Bar"},{"id":3,"feedPriority":1,"count":4,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200331","comment":"KITCHEN Bar"},{"id":3,"feedPriority":2,"count":7,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200332","comment":"KITCHEN Bar"},{"id":3,"feedPriority":3,"count":3,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"%s","comment":"KITCHEN Bar"}],"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
 
-				stringJSON = fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":[{"id":9,"feedPriority":1,"count":1,"modification":"[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]","name":"Большой Денер (белый соус)","cookingTime":200,"title":"Мясо × 2, Огурцы маринованные","titleArray":["Мясо × 2","Огурцы маринованные"],"productId":"16431463320039[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]1","comment":"KITCHEN Bar"},{"id":5,"feedPriority":2,"count":8,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200352","comment":"KITCHEN Bar"},{"id":5,"feedPriority":3,"count":4,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200353","comment":"KITCHEN Bar"},{"id":5,"feedPriority":1,"count":3,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200351","comment":"KITCHEN Bar"},{"id":3,"feedPriority":1,"count":4,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200331","comment":"KITCHEN Bar"},{"id":3,"feedPriority":2,"count":7,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200332","comment":"KITCHEN Bar"},{"id":3,"feedPriority":3,"count":3,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"%s","comment":"KITCHEN Bar"}],"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
+			// stringJSON := fmt.Sprintf(`{"id": %d, "hash": "%s", "type": "workshop", "orderName": %d, "action": "send_order", "waiterId": 7, "waiterName": "Виктор", "tableId": "99", "account": "web-kotlas", "terminalId": "web-kotlas1", "comment": "стресс коммент", "orderComment": "", "products": [{"id": 3, "count": 1, "name": "Капучино 250 мл", "cookingTime": 80, "title": "", "titleArray": [], "productId": "%s", "comment": ""}], "msgHash": "%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
 
-				// stringJSON := fmt.Sprintf(`{"id": %d, "hash": "%s", "type": "workshop", "orderName": %d, "action": "send_order", "waiterId": 7, "waiterName": "Виктор", "tableId": "99", "account": "web-kotlas", "terminalId": "web-kotlas1", "comment": "стресс коммент", "orderComment": "", "products": [{"id": 3, "count": 1, "name": "Капучино 250 мл", "cookingTime": 80, "title": "", "titleArray": [], "productId": "%s", "comment": ""}], "msgHash": "%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
-
-				SendMessage(conn, stringJSON)
-			}
-
-			// {"action":"handshake","accountName":"web-kotlas","terminalId":"web-kotlas1","type":"FASTFOOD","msgHash":"WddYGbBgAy"}
-			// log.Println("time: ", t)
-
-		case <-interrupt:
-			log.Println("interrupt")
-
-			// Cleanly close the connection by sending a close message and then
-			// waiting (with timeout) for the server to close the connection.
-			err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			if err != nil {
-				log.Println("write close:", err)
-				return
-			}
-			select {
-			case <-done:
-			case <-time.After(time.Second):
-			}
-			return
+			SendMessage(conn, stringJSON)
 		}
+		fmt.Println("Interval: ", interval)
+		time.Sleep(time.Duration(interval) * time.Second)
+		interval = rand.Int31n(120-5) + 5
+		// select {
+		// case <-done:
+		// 	return
+		// case <-ticker.C:
+
+		// 	if connected {
+		// 		orderName++
+
+		// 		stringJSON = fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":[{"id":9,"feedPriority":1,"count":1,"modification":"[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]","name":"Большой Денер (белый соус)","cookingTime":200,"title":"Мясо × 2, Огурцы маринованные","titleArray":["Мясо × 2","Огурцы маринованные"],"productId":"16431463320039[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]1","comment":"KITCHEN Bar"},{"id":5,"feedPriority":2,"count":8,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200352","comment":"KITCHEN Bar"},{"id":5,"feedPriority":3,"count":4,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200353","comment":"KITCHEN Bar"},{"id":5,"feedPriority":1,"count":3,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200351","comment":"KITCHEN Bar"},{"id":3,"feedPriority":1,"count":4,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200331","comment":"KITCHEN Bar"},{"id":3,"feedPriority":2,"count":7,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200332","comment":"KITCHEN Bar"},{"id":3,"feedPriority":3,"count":3,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"%s","comment":"KITCHEN Bar"}],"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
+
+		// 		// stringJSON := fmt.Sprintf(`{"id": %d, "hash": "%s", "type": "workshop", "orderName": %d, "action": "send_order", "waiterId": 7, "waiterName": "Виктор", "tableId": "99", "account": "web-kotlas", "terminalId": "web-kotlas1", "comment": "стресс коммент", "orderComment": "", "products": [{"id": 3, "count": 1, "name": "Капучино 250 мл", "cookingTime": 80, "title": "", "titleArray": [], "productId": "%s", "comment": ""}], "msgHash": "%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
+
+		// 		SendMessage(conn, stringJSON)
+		// 	}
+
+		// 	interval = rand.Int31n(120-5) + 5
+		// 	fmt.Println("Interval: ", interval)
+		// 	// {"action":"handshake","accountName":"web-kotlas","terminalId":"web-kotlas1","type":"FASTFOOD","msgHash":"WddYGbBgAy"}
+		// 	// log.Println("time: ", t)
+
+		// case <-interrupt:
+		// 	log.Println("interrupt")
+
+		// 	// Cleanly close the connection by sending a close message and then
+		// 	// waiting (with timeout) for the server to close the connection.
+		// 	err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		// 	if err != nil {
+		// 		log.Println("write close:", err)
+		// 		return
+		// 	}
+		// 	select {
+		// 	case <-done:
+		// 	case <-time.After(time.Second):
+		// 	}
+		// 	return
+		// }
 	}
 }
