@@ -138,7 +138,7 @@ func main() {
 
 	done := make(chan struct{})
 
-	stringJSON := `{"action":"handshake","accountName":"web-kotlas","terminalId":"стресс-тест","type":"FASTFOOD","msgHash":"WddYGbBgAy"}`
+	stringJSON := `{"action":"handshake","accountName":"web-kotlas","terminalId":"stress-терминал","type":"FASTFOOD","msgHash":"WddYGbBgAy"}`
 	SendMessage(conn, stringJSON)
 
 	orderName := 0
@@ -201,14 +201,14 @@ func main() {
 		if connected {
 			orderName++
 
-			stringJSON = fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":[{"id":9,"feedPriority":1,"count":1,"modification":"[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]","name":"Большой Денер (белый соус)","cookingTime":200,"title":"Мясо × 2, Огурцы маринованные","titleArray":["Мясо × 2","Огурцы маринованные"],"productId":"16431463320039[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]1","comment":"KITCHEN Bar"},{"id":5,"feedPriority":2,"count":8,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200352","comment":"KITCHEN Bar"},{"id":5,"feedPriority":3,"count":4,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200353","comment":"KITCHEN Bar"},{"id":5,"feedPriority":1,"count":3,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200351","comment":"KITCHEN Bar"},{"id":3,"feedPriority":1,"count":4,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200331","comment":"KITCHEN Bar"},{"id":3,"feedPriority":2,"count":7,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200332","comment":"KITCHEN Bar"},{"id":3,"feedPriority":3,"count":3,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"%s","comment":"KITCHEN Bar"}],"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
+			stringJSON = fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"stress-терминал","comment":"KITCHEN Bar","orderComment":"stress","products":[{"id":9,"feedPriority":1,"count":1,"modification":"[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]","name":"Большой Денер (белый соус)","cookingTime":200,"title":"Мясо × 2, Огурцы маринованные","titleArray":["Мясо × 2","Огурцы маринованные"],"productId":"16431463320039[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]1","comment":"KITCHEN Bar"},{"id":5,"feedPriority":2,"count":8,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200352","comment":"KITCHEN Bar"},{"id":5,"feedPriority":3,"count":4,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200353","comment":"KITCHEN Bar"},{"id":5,"feedPriority":1,"count":3,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200351","comment":"KITCHEN Bar"},{"id":3,"feedPriority":1,"count":4,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200331","comment":"KITCHEN Bar"},{"id":3,"feedPriority":2,"count":7,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200332","comment":"KITCHEN Bar"},{"id":3,"feedPriority":3,"count":3,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"%s","comment":"KITCHEN Bar"}],"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
 
 			// stringJSON := fmt.Sprintf(`{"id": %d, "hash": "%s", "type": "workshop", "orderName": %d, "action": "send_order", "waiterId": 7, "waiterName": "Виктор", "tableId": "99", "account": "web-kotlas", "terminalId": "web-kotlas1", "comment": "стресс коммент", "orderComment": "", "products": [{"id": 3, "count": 1, "name": "Капучино 250 мл", "cookingTime": 80, "title": "", "titleArray": [], "productId": "%s", "comment": ""}], "msgHash": "%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
 
-			// SendMessage(conn, stringJSON)
+			SendMessage(conn, stringJSON)
 		}
 
-		interval = rand.Int31n(120-5) + 5
+		interval = rand.Int31n(5-3) + 3
 		fmt.Println("Interval: ", interval)
 		time.Sleep(time.Duration(interval) * time.Second)
 		// 	// {"action":"handshake","accountName":"web-kotlas","terminalId":"web-kotlas1","type":"FASTFOOD","msgHash":"WddYGbBgAy"}
