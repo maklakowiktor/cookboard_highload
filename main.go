@@ -16,7 +16,7 @@ import (
 )
 
 // 192.168.1.100, 192.168.1.110
-var addr = flag.String("addr", fmt.Sprintf("%s:2222", "192.168.1.100"), "http service address")
+var addr = flag.String("addr", fmt.Sprintf("%s:2222", "192.168.1.67"), "http service address")
 
 // GetLocalIP returns the non loopback local IP of the host
 func GetLocalIP() string {
@@ -205,7 +205,7 @@ func main() {
 
 			// stringJSON := fmt.Sprintf(`{"id": %d, "hash": "%s", "type": "workshop", "orderName": %d, "action": "send_order", "waiterId": 7, "waiterName": "Виктор", "tableId": "99", "account": "web-kotlas", "terminalId": "web-kotlas1", "comment": "стресс коммент", "orderComment": "", "products": [{"id": 3, "count": 1, "name": "Капучино 250 мл", "cookingTime": 80, "title": "", "titleArray": [], "productId": "%s", "comment": ""}], "msgHash": "%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
 
-			SendMessage(conn, stringJSON)
+			// SendMessage(conn, stringJSON)
 		}
 
 		interval = rand.Int31n(120-5) + 5
