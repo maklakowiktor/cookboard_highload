@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"net"
 	"net/url"
 	"os"
 	"os/signal"
@@ -17,38 +16,6 @@ import (
 
 // 192.168.1.100, 192.168.1.110
 var addr = flag.String("addr", fmt.Sprintf("%s:2222", "192.168.1.106"), "http service address")
-
-// GetLocalIP returns the non loopback local IP of the host
-func GetLocalIP() string {
-	conn, err := net.Dial("ip:icmp", "google.com")
-	if err != nil {
-		fmt.Println(err.Error())
-		return ""
-	}
-	var localIp = conn.LocalAddr()
-	fmt.Println("LocIP: ", localIp)
-	return localIp.String()
-}
-
-func DateNow() int64 {
-	now := time.Now()
-
-	// correct way to convert time to millisecond - with UnixNano()
-	unixNano := now.UnixNano()
-	umillisec := unixNano / 1000000
-	// fmt.Println("(correct)Millisecond : ", umillisec)
-	return umillisec
-}
-
-func RandomString(n int) string {
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
-	s := make([]rune, n)
-	for i := range s {
-		s[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(s)
-}
 
 func SendMessage(c *websocket.Conn, stringJSON string) {
 	err := c.WriteMessage(websocket.TextMessage, []byte(stringJSON))
@@ -206,7 +173,7 @@ func main() {
 
 			// stringJSON := fmt.Sprintf(`{"id": %d, "hash": "%s", "type": "workshop", "orderName": %d, "action": "send_order", "waiterId": 7, "waiterName": "Виктор", "tableId": "99", "account": "web-kotlas", "terminalId": "web-kotlas1", "comment": "стресс коммент", "orderComment": "", "products": [{"id": 3, "count": 1, "name": "Капучино 250 мл", "cookingTime": 80, "title": "", "titleArray": [], "productId": "%s", "comment": ""}], "msgHash": "%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
 
-			// SendMessage(conn, stringJSON)
+			SendMessage(conn, stringJSON)
 		}
 
 		interval = rand.Int31n(5-3) + 3
