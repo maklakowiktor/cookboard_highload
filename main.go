@@ -4,18 +4,23 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/url"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-// 192.168.1.100, 192.168.1.110, 192.168.1.103
-var addr = flag.String("addr", fmt.Sprintf("%s:2222", "192.168.1.108"), "http service address")
+var orderName = 152658952
+var enc = json.NewEncoder(os.Stdout)
+var connected bool = false
+
+const sendToCB = true
 
 func SendMessage(c *websocket.Conn, stringJSON string) {
 	err := c.WriteMessage(websocket.TextMessage, []byte(stringJSON))
@@ -25,8 +30,102 @@ func SendMessage(c *websocket.Conn, stringJSON string) {
 	}
 }
 
+func main() {
+	fmt.Println("=== Starting Poster simulator ===")
+
+	// Создаем горутину для отслеживания прерывания работы приложения
+	ShutdownApp()
+
+	// Сеем зерно для рандома
+	rand.Seed(time.Now().UnixNano())
+
+	// Мутим флаги
+	flag.Parse()
+	log.SetFlags(0)
+
+	// Создаем канал
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+
+	ip, err := GetIp(100, 255)
+	if err != nil {
+		log.Fatal("err dial:", err)
+	}
+
+	u := url.URL{Scheme: "ws", Host: ip, Path: "/"}
+	log.Printf("connecting to %s", u.String())
+
+	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		log.Fatal("err dial:", err)
+	}
+	defer conn.Close()
+
+	done := make(chan struct{})
+
+	SendMessage(conn, string(ReadJSONFile("json/handshake.json")))
+
+	InitThread(done, conn)
+}
+
+func InitThread(done chan struct{}, conn *websocket.Conn) {
+	ProcessMessages(done, conn)
+
+	SendToCookboard(conn)
+
+}
+
+func ReadJSONFile(fileName string) []byte {
+	stringJSON, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("Successfully opened: %s \n", fileName)
+
+	return stringJSON
+}
+
+func ShutdownApp() {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("\r- Ctrl+C pressed in Terminal")
+		os.Exit(0)
+	}()
+}
+
+func ProcessMessages(done chan struct{}, conn *websocket.Conn) {
+	go func() {
+		defer close(done)
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				log.Println("read:", err)
+				return
+			}
+
+			if !connected {
+				connected = true
+			}
+
+			log.Printf("recv: %s", message)
+
+			var msgMap map[string]interface{}
+
+			if err := json.Unmarshal(message, &msgMap); err != nil {
+				fmt.Println(err)
+				panic(err)
+			}
+
+			fmt.Println("Message:", msgMap, "\n")
+
+			HandleMessage(msgMap, conn, enc)
+		}
+	}()
+}
+
 func HandleMessage(msgMap map[string]interface{}, conn *websocket.Conn, enc *json.Encoder) {
-	fmt.Println(msgMap)
 	switch msgMap["action"] {
 	case "handshake":
 	case "transportMsgReceived":
@@ -39,25 +138,10 @@ func HandleMessage(msgMap map[string]interface{}, conn *websocket.Conn, enc *jso
 		// SendMessage(conn, str)
 
 	case "order_ready":
-		// 2. {action: answer_received, terminalId: web-kotlas1, isCanceled: 0, hash: mTL5tyJJFaed, msgHash: LlRc9OGEOd}
-		msgJson := fmt.Sprint(msgMap["msg"])
-		// fmt.Println("order_ready:", msgJson)
 
-		var msg map[string]interface{}
-
-		if err := json.Unmarshal([]byte(msgJson), &msg); err != nil {
-			panic(err)
-		}
-		// fmt.Println()
-		// fmt.Println(msg)
-
-		hash := fmt.Sprint(msg["hash"])
+		hash := fmt.Sprint(msgMap["hash"])
 		terminalId := fmt.Sprint(msgMap["terminalId"])
 		receivedMsgHash := fmt.Sprint(msgMap["msgHash"])
-
-		// Transport
-		// str := fmt.Sprintf(`{"action": "transportMsgReceived", "receivedMsgHash": "%s", "msgHash": "%s"}`, receivedMsgHash, RandomString(12))
-		// SendMessage(conn, str)
 
 		// Answer received
 		str := fmt.Sprintf(`{"action": "answer_received", "terminalId": "%s", "isCanceled": 0, "hash": "%s", "msgHash": "%s"}`, terminalId, hash, receivedMsgHash)
@@ -84,125 +168,34 @@ func HandleMessage(msgMap map[string]interface{}, conn *websocket.Conn, enc *jso
 	}
 }
 
-func main() {
-	rand.Seed(time.Now().UnixNano())
-	flag.Parse()
-	log.SetFlags(0)
-	connected := false
-
-	fmt.Println("Local ip: ", GetLocalIP())
-
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
-	log.Printf("connecting to %s", u.String())
-
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	if err != nil {
-		log.Fatal("dial:", err)
-	}
-	defer conn.Close()
-
-	done := make(chan struct{})
-
-	stringJSON := `{"action":"handshake","accountName":"evo24","terminalId":"evo241","type":"FASTFOOD","msgHash":"WddYGbBgAy"}`
-	SendMessage(conn, stringJSON)
-
-	orderName := 152658952
-	enc := json.NewEncoder(os.Stdout)
-
-	// c := make(chan os.Signal)
-	// signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		// <-c
-		// fmt.Println("\r- Ctrl+C pressed in Terminal")
-		// os.Exit(0)
-		defer close(done)
-		for {
-			_, message, err := conn.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				return
-			}
-
-			if !connected {
-				connected = true
-			}
-
-			// log.Printf("recv: %s", message)
-
-			var msgMap map[string]interface{}
-
-			if err := json.Unmarshal(message, &msgMap); err != nil {
-				panic(err)
-			}
-
-			fmt.Println("Message:", msgMap)
-
-			HandleMessage(msgMap, conn, enc)
-
-			// if connected && orderName < 1 {
-			// 	orderName++
-
-			// 	// stringJSON = fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":[{"id":9,"feedPriority":1,"count":1,"modification":"[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]","name":"Большой Денер (белый соус)","cookingTime":200,"title":"Мясо × 2, Огурцы маринованные","titleArray":["Мясо × 2","Огурцы маринованные"],"productId":"16431463320039[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]1","comment":"KITCHEN Bar"}],"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, RandomString(10))
-			// 	stringJSON = fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d, "queueNumber": "370", "action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"стресс-тест","comment":"KITCHEN Bar","orderComment":"stress","products":[{"id":9,"feedPriority":1,"count":1,"modification":"[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]","name":"Большой Денер (белый соус)","cookingTime":200,"title":"Мясо × 2, Огурцы маринованные","titleArray":["Мясо × 2","Огурцы маринованные"],"productId":"16431463320039[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]1","comment":"KITCHEN Bar"},{"id":5,"feedPriority":2,"count":8,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200352","comment":"KITCHEN Bar"},{"id":5,"feedPriority":3,"count":4,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200353","comment":"KITCHEN Bar"},{"id":5,"feedPriority":1,"count":3,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200351","comment":"KITCHEN Bar"},{"id":3,"feedPriority":1,"count":4,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200331","comment":"KITCHEN Bar"},{"id":3,"feedPriority":2,"count":7,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200332","comment":"KITCHEN Bar"},{"id":3,"feedPriority":3,"count":3,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"%s","comment":"KITCHEN Bar"}],"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
-
-			// 	// stringJSON := fmt.Sprintf(`{"id": %d, "hash": "%s", "type": "workshop", "orderName": %d, "action": "send_order", "waiterId": 7, "waiterName": "Виктор", "tableId": "99", "account": "web-kotlas", "terminalId": "web-kotlas1", "comment": "стресс коммент", "orderComment": "", "products": [{"id": 3, "count": 1, "name": "Капучино 250 мл", "cookingTime": 80, "title": "", "titleArray": [], "productId": "%s", "comment": ""}], "msgHash": "%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
-
-			// 	SendMessage(conn, stringJSON)
-			// }
-
-			// fmt.Println(message["action"])
-
-			// d := map[string]int{"apple": 5, "lettuce": 7}
-			// enc.Encode(d)
-		}
-	}()
-
+func SendToCookboard(conn *websocket.Conn) {
 	var interval int32 = 1
 	// ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	// defer ticker.Stop()
 
 	for {
-		// select {
-		// case <-done:
-		// 	return
-		// case <-ticker.C:
 
-		if connected {
+		if connected && sendToCB {
 			orderName++
 
-			stringJSON = fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"queueNumber":"A-8","action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"evo24","terminalId":"evo241","comment":"KITCHEN Bar","orderComment":"stress","products":[{"id":9,"feedPriority":1,"count":1,"modification":"[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]","name":"Большой Денер (белый соус)","cookingTime":200,"title":"Мясо × 2, Огурцы маринованные","titleArray":["Мясо × 2","Огурцы маринованные"],"productId":"16431463320039[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]1","comment":"KITCHEN Bar"},{"id":5,"feedPriority":2,"count":8,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200352","comment":"KITCHEN Bar"},{"id":4,"feedPriority":3,"count":4,"name":"Lavash sir","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200353","comment":"KITCHEN Bar"},{"id":5,"feedPriority":1,"count":3,"name":"Круасаны","cookingTime":150,"title":"","titleArray":[],"productId":"164314633200351","comment":"KITCHEN Bar"},{"id":3,"feedPriority":1,"count":4,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200331","comment":"KITCHEN Bar"},{"id":3,"feedPriority":2,"count":7,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"164314633200332","comment":"KITCHEN Bar"},{"id":3,"feedPriority":3,"count":3,"name":"Капучино 250 мл","cookingTime":80,"title":"","titleArray":[],"productId":"%s","comment":"KITCHEN Bar"}],"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
+			// 1)
+			// productsJSON := ReadJSONFile("json/products.json")
+			// stringJSON = fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"queueNumber":"A-8","action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":%s,"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, string(productsJSON), RandomString(10))
 
+			// 2)
 			// stringJSON := fmt.Sprintf(`{"id": %d, "hash": "%s", "type": "workshop", "orderName": %d, "orderNumber":"R387DE3", "action": "send_order", "waiterId": 7, "waiterName": "Виктор", "tableId": "99", "account": "web-kotlas", "terminalId": "web-kotlas", "comment": "стресс коммент", "orderComment": "", "products": [{"id": 3, "count": 1, "name": "Капучино 250 мл", "cookingTime": 80, "title": "", "titleArray": [], "productId": "%s", "comment": ""}], "msgHash": "%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
 
-			SendMessage(conn, stringJSON)
-			fmt.Println("Сообщение отправлено ✅")
+			// 3)
+			stringJSON := ReadJSONFile("json/cooked_products.json")
+
+			SendMessage(conn, string(stringJSON))
+			// fmt.Println("Сообщение отправлено ✅")
 		}
 
-		interval = rand.Int31n(5-3) + 3
+		interval = rand.Int31n(10-5) + 5
 		// fmt.Println("Interval: ", interval)
 		time.Sleep(time.Duration(interval) * time.Second)
 		// 	// {"action":"handshake","accountName":"web-kotlas","terminalId":"web-kotlas1","type":"FASTFOOD","msgHash":"WddYGbBgAy"}
 		// 	// log.Println("time: ", t)
-
-		// case <-interrupt:
-		// 	log.Println("interrupt")
-
-		// 	// Cleanly close the connection by sending a close message and then
-		// 	// waiting (with timeout) for the server to close the connection.
-		// 	err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-		// 	if err != nil {
-		// 		log.Println("write close:", err)
-		// 		return
-		// 	}
-		// 	select {
-		// 	case <-done:
-		// 	case <-time.After(time.Second):
-		// 	}
-		// 	return
-		// }
 	}
 }

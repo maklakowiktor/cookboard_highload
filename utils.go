@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
+	"net/http"
 	"time"
 )
 
@@ -37,4 +41,44 @@ func RandomString(n int) string {
 		s[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(s)
+}
+
+func GetIp(startOctet, endOctet int) (string, error) {
+	const PORT = 2222
+
+	for i := startOctet; i < endOctet; i++ {
+		var ip string = fmt.Sprintf("192.168.1.%s", fmt.Sprint(i))
+		var addr = fmt.Sprintf("%s:%s", ip, fmt.Sprint(PORT))
+		// fmt.Println("Current addr: ", addr)
+
+		client := &http.Client{Timeout: time.Duration(200) * time.Millisecond}
+
+		req, err := http.NewRequest("GET", fmt.Sprintf("http://%s", addr), nil)
+		if err != nil {
+			continue
+		}
+
+		req.Header.Add("Accept", "application/json")
+		resp, err := client.Do(req)
+
+		if err != nil {
+			continue
+		}
+
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Println("response: ", string(body))
+
+		if resp.StatusCode == 200 {
+			var result map[string]interface{}
+			json.Unmarshal([]byte(body), &result)
+			if result["ip"] == ip {
+				return addr, nil
+			}
+		}
+
+		defer client.CloseIdleConnections()
+
+	}
+
+	return "", errors.New("device not found")
 }
