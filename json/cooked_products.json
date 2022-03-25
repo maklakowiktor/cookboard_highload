@@ -1,47 +1,33 @@
-{
-  "id": 1639899792024,
-  "hash": "5cmtW79Oa4",
-  "type": "workshop",
-  "orderName": 1858,
-  "action": "send_order",
-  "waiterId": 7,
-  "waiterName": "Виктор",
-  "tableId": "",
-  "terminalId": "web-kotlas1",
-  "products": [
-    {
-      "id": 1,
-      "count": 1,
-      "name": "Баржоми 0.5l",
-      "cookingTime": 0,
-      "title": "",
-      "titleArray": [],
-      "productId": "164001709716131",
-      "comment": ""
-    },
-    {
-      "id": 8,
-      "count": 1,
-      "modification": 1,
-      "name": "Холодный чай (Липтон 0,5л)",
-      "cookingTime": 0,
-      "title": "",
-      "titleArray": [],
-      "productId": "1640017097165246",
-      "comment": ""
-    },
-    {
-      "id": 8,
-      "count": 1,
-      "modification": 2,
-      "name": "Холодный чай (Липтон 1л)",
-      "cookingTime": 0,
-      "title": "",
-      "titleArray": [],
-      "productId": "1640017097166964",
-      "comment": ""
-    }
-  ],
-  "orderComment": "",
-  "msgHash": "URguEmA4Cr121"
-}
+[{
+    "id": 1,
+    "count": 1,
+    "name": "Баржоми 0.5l",
+    "cookingTime": 0,
+    "title": "",
+    "titleArray": [],
+    "productId": "164001709716131",
+    "comment": ""
+  },
+  {
+    "id": 8,
+    "count": 1,
+    "modification": 1,
+    "name": "Холодный чай (Липтон 0,5л)",
+    "cookingTime": 0,
+    "title": "",
+    "titleArray": [],
+    "productId": "1640017097165246",
+    "comment": ""
+  },
+  {
+    "id": 8,
+    "count": 1,
+    "modification": 2,
+    "name": "Холодный чай (Липтон 1л)",
+    "cookingTime": 0,
+    "title": "",
+    "titleArray": [],
+    "productId": "1640017097166964",
+    "comment": ""
+  }
+]

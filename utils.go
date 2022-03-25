@@ -43,7 +43,7 @@ func RandomString(n int) string {
 	return string(s)
 }
 
-func GetIp(startOctet, endOctet int) (string, error) {
+func ScanDevices(startOctet, endOctet int) (string, error) {
 	const PORT = 2222
 
 	for i := startOctet; i < endOctet; i++ {
@@ -51,7 +51,7 @@ func GetIp(startOctet, endOctet int) (string, error) {
 		var addr = fmt.Sprintf("%s:%s", ip, fmt.Sprint(PORT))
 		// fmt.Println("Current addr: ", addr)
 
-		client := &http.Client{Timeout: time.Duration(200) * time.Millisecond}
+		client := &http.Client{Timeout: 300 * time.Millisecond}
 
 		req, err := http.NewRequest("GET", fmt.Sprintf("http://%s", addr), nil)
 		if err != nil {
@@ -66,7 +66,7 @@ func GetIp(startOctet, endOctet int) (string, error) {
 		}
 
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Println("response: ", string(body))
+		fmt.Println("addr: ", addr, ", response: ", string(body))
 
 		if resp.StatusCode == 200 {
 			var result map[string]interface{}

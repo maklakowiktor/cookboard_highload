@@ -16,11 +16,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var orderName = 152658952
+var orderName = DateNow()
 var enc = json.NewEncoder(os.Stdout)
-var connected bool = false
+var connected bool = true
 
-const sendToCB = true
+const sendToCB = false
 
 func SendMessage(c *websocket.Conn, stringJSON string) {
 	err := c.WriteMessage(websocket.TextMessage, []byte(stringJSON))
@@ -47,7 +47,8 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	ip, err := GetIp(100, 255)
+	// Сканируем устройства по ip на порту 2222
+	ip, err := ScanDevices(100, 120)
 	if err != nil {
 		log.Fatal("err dial:", err)
 	}
@@ -61,15 +62,15 @@ func main() {
 	}
 	defer conn.Close()
 
-	done := make(chan struct{})
+	// done := make(chan struct{})
 
 	SendMessage(conn, string(ReadJSONFile("json/handshake.json")))
 
-	InitThread(done, conn)
+	InitThread(conn)
 }
 
-func InitThread(done chan struct{}, conn *websocket.Conn) {
-	ProcessMessages(done, conn)
+func InitThread(conn *websocket.Conn) {
+	ProcessMessages(conn)
 
 	SendToCookboard(conn)
 
@@ -95,9 +96,9 @@ func ShutdownApp() {
 	}()
 }
 
-func ProcessMessages(done chan struct{}, conn *websocket.Conn) {
+func ProcessMessages(conn *websocket.Conn) {
 	go func() {
-		defer close(done)
+		// defer close(done)
 		for {
 			_, message, err := conn.ReadMessage()
 			if err != nil {
@@ -109,16 +110,25 @@ func ProcessMessages(done chan struct{}, conn *websocket.Conn) {
 				connected = true
 			}
 
-			log.Printf("recv: %s", message)
-
+			// log.Printf("recv: %s", message)
 			var msgMap map[string]interface{}
 
 			if err := json.Unmarshal(message, &msgMap); err != nil {
-				fmt.Println(err)
 				panic(err)
 			}
 
 			fmt.Println("Message:", msgMap, "\n")
+
+			if msgMap["action"] == "order_ready" {
+				var product Product
+
+				product, err := UnmarshalProduct(message)
+				if err != nil {
+					panic(err)
+				}
+
+				fmt.Println("🍕 Product: ", product, "\n")
+			}
 
 			HandleMessage(msgMap, conn, enc)
 		}
@@ -147,19 +157,12 @@ func HandleMessage(msgMap map[string]interface{}, conn *websocket.Conn, enc *jso
 		str := fmt.Sprintf(`{"action": "answer_received", "terminalId": "%s", "isCanceled": 0, "hash": "%s", "msgHash": "%s"}`, terminalId, hash, receivedMsgHash)
 		SendMessage(conn, str)
 
-	case "order_canceled":
-		msgJson := fmt.Sprint(msgMap["msg"])
-		fmt.Println("order_canceled:", msgJson)
-
-		var msg map[string]interface{}
-
-		if err := json.Unmarshal([]byte(msgJson), &msg); err != nil {
-			panic(err)
-		}
+	case "order_cancel":
+		fmt.Println("order_canceled:", msgMap)
 
 		hash := fmt.Sprint(msgMap["hash"])
 		terminalId := fmt.Sprint(msgMap["terminalId"])
-		receivedMsgHash := fmt.Sprint(msgMap["receivedMsgHash"])
+		receivedMsgHash := fmt.Sprint(msgMap["msgHash"])
 
 		str := fmt.Sprintf(`{"action": "answer_received", "terminalId": "%s", "isCanceled": 1, "hash": "%s", "msgHash": "%s"}`, terminalId, hash, receivedMsgHash)
 		SendMessage(conn, str)
@@ -179,16 +182,15 @@ func SendToCookboard(conn *websocket.Conn) {
 			orderName++
 
 			// 1)
-			// productsJSON := ReadJSONFile("json/products.json")
-			// stringJSON = fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"queueNumber":"A-8","action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":%s,"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, string(productsJSON), RandomString(10))
+			// productsByteArr := ReadJSONFile("json/all_products.json")
+			// stringJSON := fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"queueNumber":"A-8","action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":%s,"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, string(productsByteArr), RandomString(10))
 
 			// 2)
-			// stringJSON := fmt.Sprintf(`{"id": %d, "hash": "%s", "type": "workshop", "orderName": %d, "orderNumber":"R387DE3", "action": "send_order", "waiterId": 7, "waiterName": "Виктор", "tableId": "99", "account": "web-kotlas", "terminalId": "web-kotlas", "comment": "стресс коммент", "orderComment": "", "products": [{"id": 3, "count": 1, "name": "Капучино 250 мл", "cookingTime": 80, "title": "", "titleArray": [], "productId": "%s", "comment": ""}], "msgHash": "%s"}`, DateNow(), RandomString(10), orderName, RandomString(10), RandomString(10))
+			// stringJSON := ReadJSONFile("json/cooked_products.json")
+			cookedProductsByteArr := ReadJSONFile("json/mix_products.json")
+			stringJSON := fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"queueNumber":"A-8","action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":%s,"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, string(cookedProductsByteArr), RandomString(10))
 
-			// 3)
-			stringJSON := ReadJSONFile("json/cooked_products.json")
-
-			SendMessage(conn, string(stringJSON))
+			SendMessage(conn, stringJSON)
 			// fmt.Println("Сообщение отправлено ✅")
 		}
 
