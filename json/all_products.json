@@ -8,7 +8,7 @@
     "title": "Мясо × 2, Огурцы маринованные",
     "titleArray": ["Мясо × 2", "Огурцы маринованные"],
     "productId": "16431463320039[{\"m\":1,\"a\":2},{\"m\":3,\"a\":1}]1",
-    "comment": "KITCHEN Bar"
+    "comment": "Побольше мяса"
 }, {
     "id": 5,
     "feedPriority": 2,
@@ -18,7 +18,7 @@
     "title": "",
     "titleArray": [],
     "productId": "164314633200352",
-    "comment": "KITCHEN Bar"
+    "comment": "Со сгущенкой"
 }, {
     "id": 4,
     "feedPriority": 3,
@@ -28,7 +28,7 @@
     "title": "",
     "titleArray": [],
     "productId": "164314633200353",
-    "comment": "KITCHEN Bar"
+    "comment": "Свежий лаваш"
 }, {
     "id": 5,
     "feedPriority": 1,
@@ -38,7 +38,7 @@
     "title": "",
     "titleArray": [],
     "productId": "164314633200351",
-    "comment": "KITCHEN Bar"
+    "comment": "Со сгущенкой"
 }, {
     "id": 3,
     "feedPriority": 1,
@@ -48,7 +48,7 @@
     "title": "",
     "titleArray": [],
     "productId": "164314633200331",
-    "comment": "KITCHEN Bar"
+    "comment": "С рисунком"
 }, {
     "id": 3,
     "feedPriority": 2,
@@ -58,7 +58,7 @@
     "title": "",
     "titleArray": [],
     "productId": "164314633200332",
-    "comment": "KITCHEN Bar"
+    "comment": "С рисунком"
 }, {
     "id": 3,
     "feedPriority": 3,
@@ -68,5 +68,5 @@
     "title": "",
     "titleArray": [],
     "productId": "164314633200334",
-    "comment": "KITCHEN Bar"
+    "comment": "С рисунком"
 }]

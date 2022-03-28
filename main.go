@@ -20,7 +20,7 @@ var orderName = DateNow()
 var enc = json.NewEncoder(os.Stdout)
 var connected bool = true
 
-const sendToCB = false
+const sendToCB = true
 
 func SendMessage(c *websocket.Conn, stringJSON string) {
 	err := c.WriteMessage(websocket.TextMessage, []byte(stringJSON))
@@ -181,23 +181,36 @@ func SendToCookboard(conn *websocket.Conn) {
 		if connected && sendToCB {
 			orderName++
 
-			// 1)
-			// productsByteArr := ReadJSONFile("json/all_products.json")
-			// stringJSON := fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"queueNumber":"A-8","action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":%s,"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, string(productsByteArr), RandomString(10))
+			const cookedProductsPath = "json/cooked_products.json"
+			const allProductsPath = "json/all_products.json"
+			const oneProductPath = "json/one_product.json"
+			const mixProductsPath = "json/mix_products.json"
 
-			// 2)
-			// stringJSON := ReadJSONFile("json/cooked_products.json")
-			cookedProductsByteArr := ReadJSONFile("json/mix_products.json")
-			stringJSON := fmt.Sprintf(`{"id":%d,"hash":"%s","type":"workshop","orderName":%d,"queueNumber":"A-8","action":"send_order","waiterId":7,"waiterName":"Виктор","tableId":"","account":"web-kotlas","terminalId":"web-kotlas1","comment":"KITCHEN Bar","orderComment":"stress","products":%s,"msgHash":"%s"}`, DateNow(), RandomString(10), orderName, string(cookedProductsByteArr), RandomString(10))
+			cookedProductsByteArr := ReadJSONFile(mixProductsPath)
+			stringJSON := fmt.Sprintf(`
+				{
+					"id":%d,
+					"hash":"%s",
+					"type":"workshop",
+					"orderName":%d,
+					"queueNumber":"A-8",
+					"action":"send_order",
+					"waiterId":7,
+					"waiterName":"Виктор",
+					"tableId": 2,
+					"account":"web-kotlas",
+					"terminalId":
+					"web-kotlas1",
+					"orderComment":"Комментарий к заказу",
+					"products":%s,
+					"msgHash":"%s"
+				}`, int(DateNow()/1000), RandomString(10), orderName, string(cookedProductsByteArr), RandomString(10))
 
 			SendMessage(conn, stringJSON)
-			// fmt.Println("Сообщение отправлено ✅")
+			fmt.Println("Сообщение отправлено ✅")
 		}
 
 		interval = rand.Int31n(10-5) + 5
-		// fmt.Println("Interval: ", interval)
 		time.Sleep(time.Duration(interval) * time.Second)
-		// 	// {"action":"handshake","accountName":"web-kotlas","terminalId":"web-kotlas1","type":"FASTFOOD","msgHash":"WddYGbBgAy"}
-		// 	// log.Println("time: ", t)
 	}
 }
