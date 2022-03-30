@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/sciter-sdk/go-sciter"
+	"github.com/sciter-sdk/go-sciter/window"
 )
 
 var orderName = DateNow()
@@ -67,6 +69,13 @@ func main() {
 	SendMessage(conn, string(ReadJSONFile("json/handshake.json")))
 
 	InitThread(conn)
+
+	win, _ := window.New(sciter.SW_MAIN|sciter.SW_TITLEBAR, sciter.DefaultRect)
+
+	win.SetTitle("Poster Simulator")
+	win.Show()
+	win.Run()
+
 }
 
 func InitThread(conn *websocket.Conn) {
